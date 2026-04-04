@@ -1,0 +1,5 @@
+[contract]
+name = "trustblock-stellar-escrow"
+
+[build]
+opt-level = "z"
