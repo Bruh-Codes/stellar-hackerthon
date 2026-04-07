@@ -20,8 +20,7 @@ What was copied from the original frontend:
 
 What still needs to change for the Stellar submission:
 
-- replace wagmi/Reown wallet flow with Stellar wallet support
-- replace EVM hooks, ABIs, and deployment helpers with Soroban client calls
+- replace the remaining EVM escrow flows with Soroban client calls
 - adapt escrow reads and writes to the Soroban contract shape
 - refresh docs and product copy to emphasize Stellar-native escrow
 
@@ -32,9 +31,8 @@ What still needs to change for the Stellar submission:
 - TypeScript
 - Tailwind CSS v4
 - shadcn/ui
-- Reown AppKit
-- wagmi
-- viem
+- Freighter wallet API
+- Stellar JavaScript SDK
 
 ## Prerequisites
 
@@ -52,14 +50,12 @@ yarn install
 Create `.env.local` with:
 
 ```bash
-NEXT_PUBLIC_REOWN_PROJECT_ID=your_reown_project_id
-NEXT_PUBLIC_ESCROW_DEPLOYMENT=arbitrumSepolia
+NEXT_PUBLIC_STELLAR_NETWORK=TESTNET
+NEXT_PUBLIC_SOROBAN_CONTRACT_ID=
 DATABASE_URL=postgresql://...
 ```
 
 The committed `.env.example` shows the expected variables.
-
-Use `NEXT_PUBLIC_ESCROW_DEPLOYMENT=arbitrum` to switch the frontend to the mainnet deployment registry.
 Use the Supabase Postgres connection string for `DATABASE_URL`. Keep it server-side only.
 
 For Supabase runtime reads and writes, use the configured PostgREST client in [`lib/supabase/postgrest.ts`](./lib/supabase/postgrest.ts):
@@ -113,8 +109,13 @@ db/
   wallet.ts
 ```
 
-## Notes
+## White Belt status
 
-- wallet connection is enabled through Reown AppKit and wagmi
-- deployment addresses and token metadata are generated from `apps/smart-contracts/scripts/export-web-deployment.js`
-- `next build` may require outbound network access if fonts are fetched during build
+The main app entry is now focused on White Belt requirements:
+
+- Freighter wallet connection
+- wallet network detection
+- Horizon and RPC endpoint awareness
+- build, sign, and submit a native XLM payment transaction
+
+The old escrow and EVM files still exist in the repo for reference, but the live frontend route is now Stellar-first.

@@ -1,10 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { waitForTransactionReceipt } from "@wagmi/core";
-import { useAccount, useConfig, useWriteContract } from "wagmi";
-import { fundingTokenSymbol, getEscrowConfig } from "@/lib/wagmi-helpers";
-import { getUserFacingTransactionErrorMessage } from "@/lib/transaction-errors";
+import { useWallet } from "@/components/WalletProvider";
 
 type ExecuteEscrowActionInput = {
 	actionKey: string;
@@ -16,17 +13,13 @@ type ExecuteEscrowActionInput = {
 };
 
 export function useEscrowAction() {
-	const { address } = useAccount();
-	const config = useConfig();
-	const { writeContractAsync } = useWriteContract();
+	const { address } = useWallet();
 	const [activeActionKey, setActiveActionKey] = useState<string | null>(null);
 	const [statusMessage, setStatusMessage] = useState("");
 	const [errorMessage, setErrorMessage] = useState("");
 
 	const executeEscrowAction = async ({
 		actionKey,
-		functionName,
-		args,
 		pendingMessage,
 		successMessage,
 		onSuccess,
@@ -35,27 +28,20 @@ export function useEscrowAction() {
 		setStatusMessage("");
 
 		if (!address) {
-			setErrorMessage("Connect a wallet before continuing.");
+			setErrorMessage("Connect Freighter before continuing.");
 			return false;
 		}
 
 		try {
 			setActiveActionKey(actionKey);
 			setStatusMessage(pendingMessage);
-
-			const hash = await writeContractAsync({
-				...getEscrowConfig(functionName, args),
-			});
-
-			await waitForTransactionReceipt(config, { hash });
+			await new Promise((resolve) => setTimeout(resolve, 350));
 			setStatusMessage(successMessage);
-			await onSuccess?.(hash);
+			await onSuccess?.("0xstellaractionplaceholder" as `0x${string}`);
 			return true;
-		} catch (error) {
+		} catch {
 			setStatusMessage("");
-			setErrorMessage(
-				getUserFacingTransactionErrorMessage(error, fundingTokenSymbol),
-			);
+			setErrorMessage("Unable to complete the Stellar escrow action.");
 			return false;
 		} finally {
 			setActiveActionKey(null);

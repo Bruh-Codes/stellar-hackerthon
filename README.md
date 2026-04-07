@@ -1,32 +1,115 @@
-# TrustBlock Stellar Hackathon
+# TrustBlock on Stellar
 
-This folder is a separate Git workspace for the Stellar Journey to Mastery submission.
+TrustBlock is a Stellar-native milestone escrow app for service payments. This hackathon workspace is the Stellar Journey to Mastery version of the product, focused on Soroban-based escrow creation and a Freighter-connected frontend.
 
-It keeps:
+## White Belt Status
 
-- `frontend/`: a copy of the current TrustBlock web app UI
-- `contracts/`: a new Soroban contract workspace for the Stellar-native escrow flow
+This repo is ready for a Level 1 White Belt submission.
 
-## Intent
+Current working scope:
 
-The frontend was copied from the current Arbitrum version so the product experience and information architecture can move faster.
+- Freighter wallet connection in the existing TrustBlock UI
+- Stellar testnet detection in the frontend
+- Live Soroban escrow contract deployed on Stellar testnet
+- Real `create_escrow` contract invocation from the app
+- Created escrows shown back in the in-app Ledger view
 
-The contract layer is intentionally being rebuilt for Stellar with Soroban so the submission is clearly Stellar-native rather than an EVM port.
+What this milestone proves:
 
-## Suggested next steps
+- users can connect a Stellar wallet
+- users can sign a real Stellar/Soroban transaction
+- the app creates a live onchain escrow on Stellar testnet
 
-1. Replace the EVM wallet and contract hooks in `frontend/` with Stellar wallet + Soroban integration.
-2. Expand the Soroban contract in `contracts/escrow` to handle token transfers, milestone review, disputes, and resolver logic.
-3. Rewrite the app copy and docs so the product story is framed around Stellar-native service payments and milestone escrow.
+## Submission Checklist
+
+This submission includes:
+
+- Public GitHub repository
+- `README.md`
+
+This README includes:
+
+- Project description
+- Setup instructions for local run
+- Screenshot checklist for submission assets
+
+Required screenshots for the final submission package:
+
+- Wallet connected state
+- Balance displayed
+- Successful testnet transaction
+- The transaction result shown to the user
+
+One combined screenshot is acceptable if it clearly shows multiple required states in one frame.
+
+Suggested screenshot filenames:
+
+- `screenshots/wallet-connected.png`
+- `screenshots/balance-displayed.png`
+- `screenshots/successful-testnet-transaction.png`
+- `screenshots/transaction-result-shown.png`
+- `screenshots/white-belt-combined-proof.png`
+
+## Project Structure
+
+- `frontend/`: TrustBlock frontend adapted for Freighter + Soroban
+- `contracts/`: Soroban contract workspace for the Stellar escrow logic
+
+## Deployed Testnet Contract
+
+- Contract ID: `CAQGDVXYW6YHIMLXTNCINAPCZXZ37JKLACGEWXQULYJNAGB5JJBHV4NC`
+- Network: `Stellar Testnet`
+
+## Local Run
+
+From `frontend/`:
+
+```bash
+yarn install
+yarn dev
+```
+
+Then open `http://localhost:3000`.
+
+## Demo Flow
+
+1. Connect Freighter
+2. Make sure Freighter is on Stellar testnet
+3. Open `New Escrow`
+4. Enter a valid Stellar recipient address
+5. Add milestone amounts in XLM
+6. Click `Create escrow`
+7. Approve the Soroban transaction in Freighter
+8. View the created escrow in `Ledger`
+
+## Screenshots
+
+Capture and include these in the repository before final submission:
+
+1. Wallet connected state
+2. Balance displayed
+3. Successful testnet transaction
+4. Transaction result shown to the user in the app
+
+If you prefer a single combined proof image, use:
+
+- `frontend/screenshots/white-belt-combined-proof.png`
+
+Suggested caption:
+
+- Connected Freighter wallet, in-app escrow value display, and successful Stellar testnet escrow creation visible in the TrustBlock ledger.
+
+Submission proof image:
+
+![White Belt combined proof](./frontend/screenshots/white-belt-combined-proof.png)
+
+## Next Belt Steps
+
+- fund escrow onchain from the app
+- submit milestone actions onchain
+- approve and release milestones onchain
+- add tests and broader production-readiness polish
 
 ## Git
 
-This folder already has its own Git repository, so you can add a new remote and push it independently from the original project.
-
-```bash
-cd stellar-hackathon
-git remote add origin <your-new-repo-url>
-git add .
-git commit -m "Initial Stellar hackathon scaffold"
-git push -u origin main
-```
+This folder has its own Git repository and can be pushed to a separate hackathon remote.

@@ -245,7 +245,7 @@ impl TrustBlockEscrowContract {
 			.storage()
 			.instance()
 			.get(&DataKey::NextEscrowId)
-			unwrap_or(1u64);
+			.unwrap_or(1u64);
 
 		env.storage()
 			.instance()

@@ -43,7 +43,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { deployment } from "@/helpers/deployments";
+import { useWallet } from "@/components/WalletProvider";
 import { useCreateEscrow } from "@/hooks/useCreateEscrow";
 import {
   escrowPresets,
@@ -51,10 +51,6 @@ import {
   sampleMediators,
 } from "@/lib/demo-data";
 import { formatAddressLabel } from "@/lib/escrow";
-import { contractsConfigured } from "@/lib/wagmi-helpers";
-import { walletConfigured } from "@/lib/wallet";
-import { isAddress } from "viem";
-import { useAccount } from "wagmi";
 
 const releaseDescriptions: Record<string, string> = {
   "Dual approval":
@@ -132,12 +128,16 @@ const emptyCustomTemplateDraft = {
   summary: "",
 };
 
+function isStellarAddress(value: string) {
+  return value.startsWith("G") && value.length >= 20;
+}
+
 export function CreateEscrow({
   onNavigate,
 }: {
   onNavigate: (view: ViewState) => void;
 }) {
-  const { address, isConnected } = useAccount();
+  const { address, status } = useWallet();
   const {
     handleCreateEscrow,
     isApproving,
@@ -193,6 +193,9 @@ export function CreateEscrow({
   const [selectedMilestoneTrigger, setSelectedMilestoneTrigger] = useState<
     string | null
   >("Client approval");
+  const isConnected = Boolean(address) && status === "connected";
+  const contractsConfigured = true;
+  const walletConfigured = true;
 
   const preset =
     selectedPreset === customPresetId
@@ -203,7 +206,6 @@ export function CreateEscrow({
     sampleMediators.find((item) => item.id === selectedMediator) ??
     sampleMediators[0];
   const stepIndex = setupSteps.findIndex((step) => step.id === activeStep);
-  const isSepoliaDraftMode = deployment.chainId === 421614;
   const normalizedContractAmount = sanitizeAmountInput(contractAmount);
   const normalizedMilestoneTotal = milestones.reduce(
     (sum, milestone) => sum + Number(sanitizeAmountInput(milestone.amount) || "0"),
@@ -214,7 +216,7 @@ export function CreateEscrow({
     milestones.length > 0 &&
     normalizedContractTotal > 0 &&
     Math.abs(normalizedMilestoneTotal - normalizedContractTotal) < 0.000001;
-  const recipientWalletValid = isAddress(recipientWallet);
+  const recipientWalletValid = isStellarAddress(recipientWallet);
   const isSubmitDisabled =
     !walletConfigured ||
     !contractsConfigured ||
@@ -322,7 +324,7 @@ export function CreateEscrow({
         description: contractDescription,
         clientName,
         recipientName,
-        recipientWallet: recipientWallet as `0x${string}`,
+        recipientWallet,
         totalAmount: contractAmount,
         releaseType,
         refundPolicy,
@@ -330,21 +332,16 @@ export function CreateEscrow({
         selectedMediator,
         milestones,
       },
-      isSepoliaDraftMode ? "draft" : "createAndFund",
     );
   };
 
   const primaryActionLabel = isApproving
     ? `Approve ${fundingTokenSymbol}`
     : isCreating
-      ? isSepoliaDraftMode
-        ? "Create draft"
-        : "Create escrow"
+      ? "Create escrow"
       : isProcessing
         ? "Waiting for confirmation"
-        : isSepoliaDraftMode
-          ? "Create draft"
-          : "Create & fund escrow";
+        : "Create escrow";
 
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-5">
@@ -519,7 +516,7 @@ export function CreateEscrow({
                     placeholder={
                       walletConfigured
                         ? "Connect wallet to populate"
-                        : "Set NEXT_PUBLIC_REOWN_PROJECT_ID"
+                        : "Wallet unavailable"
                     }
                     readOnly
                   />
@@ -538,7 +535,7 @@ export function CreateEscrow({
                       setRecipientWallet(event.target.value)
                     }
                     className="field-input"
-                    placeholder="0x..."
+                    placeholder="G..."
                   />
                 </Field>
                 <Field label="Title">
@@ -548,7 +545,7 @@ export function CreateEscrow({
                     className="field-input"
                   />
                 </Field>
-                <Field label="Amount (USDC)">
+                <Field label="Amount (XLM)">
                   <input
                     type="text"
                     inputMode="decimal"
@@ -570,8 +567,7 @@ export function CreateEscrow({
 
               {!walletConfigured ? (
                 <p className="mt-3 text-xs leading-5 text-amber-700">
-                  Set <code>NEXT_PUBLIC_REOWN_PROJECT_ID</code> to enable wallet
-                  connection in this form.
+                  Wallet connection is unavailable in this form right now.
                 </p>
               ) : !isConnected ? (
                 <p className="mt-3 text-xs leading-5 text-muted-foreground">
@@ -602,7 +598,11 @@ export function CreateEscrow({
                 >
                   <Select
                     value={releaseType}
-                    onValueChange={(value) => value && setReleaseType(value)}
+                    onValueChange={(value: string | null) => {
+                      if (value) {
+                        setReleaseType(value);
+                      }
+                    }}
                   >
                     <SelectTrigger className="field-input h-11 w-full px-3">
                       <SelectValue placeholder="Select release logic" />
@@ -632,7 +632,11 @@ export function CreateEscrow({
                 >
                   <Select
                     value={refundPolicy}
-                    onValueChange={(value) => value && setRefundPolicy(value)}
+                    onValueChange={(value: string | null) => {
+                      if (value) {
+                        setRefundPolicy(value);
+                      }
+                    }}
                   >
                     <SelectTrigger className="field-input h-11 w-full px-3">
                       <SelectValue placeholder="Select refund policy" />
@@ -665,7 +669,11 @@ export function CreateEscrow({
                 >
                   <Select
                     value={fundingWindow}
-                    onValueChange={(value) => value && setFundingWindow(value)}
+                    onValueChange={(value: string | null) => {
+                      if (value) {
+                        setFundingWindow(value);
+                      }
+                    }}
                   >
                     <SelectTrigger className="field-input h-11 w-full px-3">
                       <SelectValue placeholder="Select funding window" />
@@ -901,33 +909,9 @@ export function CreateEscrow({
               </div>
 
               <div className="mt-3.5 space-y-2.5">
-                {!contractsConfigured ? (
-                  <StatusNotice tone="warning">
-                    Export the deployed escrow contracts into the web app before
-                    creating live escrows.
-                  </StatusNotice>
-                ) : null}
-
-                {contractsConfigured && !fundingTokenConfigured ? (
-                  <StatusNotice tone="warning">
-                    Token configuration is missing for deployment{" "}
-                    <code>{deployment.deploymentId}</code>. Re-run the export
-                    script with <code>--token-address</code> so the form can
-                    approve and fund {fundingTokenSymbol}.
-                  </StatusNotice>
-                ) : null}
-
-                {isSepoliaDraftMode ? (
-                  <StatusNotice tone="info">
-                    Sepolia mode creates a draft first to reduce testnet gas
-                    usage. You can fund it later from the ledger.
-                  </StatusNotice>
-                ) : null}
-
                 {!isConnected ? (
                   <StatusNotice tone="warning">
-                    Connect the client wallet before creating and funding the
-                    escrow.
+                    Connect the client wallet before creating the escrow.
                   </StatusNotice>
                 ) : null}
 
@@ -1051,7 +1035,7 @@ export function CreateEscrow({
               />
               <SummaryRow
                 label="Amount"
-                value={contractAmount ? `${contractAmount} USDC` : "Not set"}
+                value={contractAmount ? `${contractAmount} XLM` : "Not set"}
               />
               <SummaryRow
                 label="Milestones"
@@ -1096,13 +1080,14 @@ export function CreateEscrow({
             <Field label="Category">
               <Select
                 value={customTemplateDraft.category}
-                onValueChange={(value) =>
-                  value &&
-                  setCustomTemplateDraft((current) => ({
-                    ...current,
-                    category: value,
-                  }))
-                }
+                onValueChange={(value: string | null) => {
+                  if (value) {
+                    setCustomTemplateDraft((current) => ({
+                      ...current,
+                      category: value,
+                    }));
+                  }
+                }}
               >
                 <SelectTrigger className="field-input h-11 w-full px-3">
                   <SelectValue placeholder="Select category" />
@@ -1212,7 +1197,7 @@ export function CreateEscrow({
               />
             </Field>
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Amount (USDC)">
+              <Field label="Amount (XLM)">
                 <input
                   type="text"
                   inputMode="decimal"
@@ -1274,7 +1259,7 @@ export function CreateEscrow({
               <div className="flex flex-col gap-3">
                 <Select
                   value={selectedMilestoneTrigger}
-                  onValueChange={(value) => {
+                  onValueChange={(value: string | null) => {
                     setSelectedMilestoneTrigger(value);
                     setNewMilestone((current) => ({
                       ...current,
@@ -1762,7 +1747,7 @@ function parseDueDate(value: string) {
 
 function formatMilestoneAmount(value: string) {
   const formatted = formatAmountInput(value);
-  return formatted ? `${formatted} USDC` : "0 USDC";
+  return formatted ? `${formatted} XLM` : "0 XLM";
 }
 
 function formatAmountInput(value: string) {

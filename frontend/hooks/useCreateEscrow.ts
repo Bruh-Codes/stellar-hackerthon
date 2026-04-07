@@ -1,31 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { waitForTransactionReceipt } from "@wagmi/core";
-import { isAddress, parseUnits } from "viem";
-import {
-	useAccount,
-	useConfig,
-	useReadContract,
-	useWriteContract,
-} from "wagmi";
-import { deployment } from "@/helpers/deployments";
-import {
-	GLOBAL_RELEASE_RULE,
-	MILESTONE_RELEASE_RULE,
-	REFUND_POLICY,
-	RESOLVER_TYPE,
-} from "@/lib/escrow";
-import {
-	contractsConfigured,
-	fundingTokenAddress,
-	fundingTokenConfigured,
-	fundingTokenDecimals,
-	fundingTokenSymbol,
-	getEscrowConfig,
-	getFundingTokenConfig,
-	zeroAddress,
-} from "@/lib/wagmi-helpers";
+import { signTransaction as freighterSignTransaction } from "@stellar/freighter-api";
+import { useWallet } from "@/components/WalletProvider";
+import { Client, networks } from "@/lib/soroban/trustblock-escrow-client/src";
+import { storeEscrowId } from "@/lib/stellar-escrow-store";
 import { getUserFacingTransactionErrorMessage } from "@/lib/transaction-errors";
 
 type CreateMilestoneInput = {
@@ -41,7 +20,7 @@ type CreateEscrowDraft = {
 	description: string;
 	clientName: string;
 	recipientName: string;
-	recipientWallet: `0x${string}`;
+	recipientWallet: string;
 	totalAmount: string;
 	releaseType: string;
 	refundPolicy: string;
@@ -50,117 +29,53 @@ type CreateEscrowDraft = {
 	milestones: CreateMilestoneInput[];
 };
 
-function normalizeAmountValue(value: string) {
+function isStellarAddress(value: string) {
+	return value.startsWith("G") && value.length >= 20;
+}
+
+const TESTNET_RPC_URL = "https://soroban-testnet.stellar.org";
+
+function sanitizeAmountInput(value: string) {
 	return value.replace(/[^0-9.]/g, "");
 }
 
-type CreateMode = "draft" | "createAndFund";
+function parseXlmAmountToStroops(value: string) {
+	const normalized = sanitizeAmountInput(value);
+	if (!normalized) {
+		throw new Error("Each milestone needs an XLM amount.");
+	}
+
+	const [wholePart = "0", fractionPart = ""] = normalized.split(".");
+	if (fractionPart.length > 7) {
+		throw new Error("XLM amounts support up to 7 decimal places.");
+	}
+
+	const whole = wholePart === "" ? "0" : wholePart;
+	const fraction = fractionPart.padEnd(7, "0");
+	return BigInt(`${whole}${fraction}`);
+}
 
 export function useCreateEscrow({
 	onSuccess,
 }: {
-	onSuccess?: (hash: `0x${string}`) => void;
+	onSuccess?: (hash: string) => void;
 } = {}) {
-	const { address } = useAccount();
-	const config = useConfig();
+	const { address, networkPassphrase } = useWallet();
 	const [statusMessage, setStatusMessage] = useState("");
 	const [errorMessage, setErrorMessage] = useState("");
 	const [isApproving, setIsApproving] = useState(false);
 	const [isCreating, setIsCreating] = useState(false);
 	const [isProcessing, setIsProcessing] = useState(false);
 
-	const { writeContractAsync } = useWriteContract();
-
-	const { data: allowance, refetch: refetchAllowance } = useReadContract({
-		...getFundingTokenConfig("allowance", [
-			address ?? zeroAddress,
-			getEscrowConfig("createEscrow").address,
-		]),
-		query: {
-			enabled:
-				contractsConfigured && fundingTokenConfigured && Boolean(address),
-		},
-	});
-
-	const parseAmountValue = (value: string) =>
-		parseUnits(normalizeAmountValue(value) || "0", fundingTokenDecimals);
-
-	const convertFundingWindowToDeadline = (windowValue: string) => {
-		const hours = Number(windowValue.split(" ")[0] || "48");
-		return BigInt(Math.floor(Date.now() / 1000) + hours * 60 * 60);
-	};
-
-	const parseDueDate = (value: string) => {
-		const normalized = value.replace(/^Due\s+/, "");
-		const parsed = new Date(`${normalized}, ${new Date().getFullYear()}`);
-		if (Number.isNaN(parsed.getTime())) {
-			return null;
-		}
-		return BigInt(Math.floor(parsed.getTime() / 1000));
-	};
-
-	const mapReleaseType = (value: string) => {
-		return value === "Client approval + timeout"
-			? GLOBAL_RELEASE_RULE.CLIENT_APPROVAL_AND_TIMEOUT
-			: GLOBAL_RELEASE_RULE.DUAL_APPROVAL;
-	};
-
-	const mapRefundPolicy = (value: string) => {
-		switch (value) {
-			case "Mediator can split refund":
-				return REFUND_POLICY.MEDIATOR_CAN_SPLIT_REFUND;
-			case "Manual only":
-				return REFUND_POLICY.MANUAL_ONLY;
-			default:
-				return REFUND_POLICY.ON_EXPIRY_IF_UNAPPROVED;
-		}
-	};
-
-	const mapResolverType = (value: string) => {
-		switch (value) {
-			case "platform":
-				return RESOLVER_TYPE.PLATFORM;
-			case "independent":
-				return RESOLVER_TYPE.INDEPENDENT;
-			default:
-				return RESOLVER_TYPE.NONE;
-		}
-	};
-
-	const mapMilestoneTrigger = (value: string) => {
-		switch (value) {
-			case "Both parties approve":
-				return MILESTONE_RELEASE_RULE.BOTH_PARTIES_APPROVE;
-			case "Client approval or timeout":
-				return MILESTONE_RELEASE_RULE.CLIENT_APPROVAL_OR_TIMEOUT;
-			case "Client approval":
-				return MILESTONE_RELEASE_RULE.CLIENT_APPROVAL;
-			default:
-				return MILESTONE_RELEASE_RULE.CUSTOM;
-		}
-	};
-
 	const handleCreateEscrow = async (
 		draft: CreateEscrowDraft,
-		mode: CreateMode = deployment.chainId === 421614 ? "draft" : "createAndFund",
+		_mode?: "draft" | "createAndFund",
 	) => {
 		setErrorMessage("");
 		setStatusMessage("");
 
 		if (!address) {
-			setErrorMessage("Connect a wallet before creating an escrow.");
-			return;
-		}
-
-		if (!contractsConfigured) {
-			setErrorMessage("Export the deployed escrow contracts into the web app first.");
-			return;
-		}
-
-		if (!fundingTokenConfigured) {
-			setErrorMessage(
-				`Export a ${fundingTokenSymbol} token address before creating and funding escrows.`,
-			);
+			setErrorMessage("Connect Freighter before creating an escrow.");
 			return;
 		}
 
@@ -169,8 +84,8 @@ export function useCreateEscrow({
 			return;
 		}
 
-		if (!isAddress(draft.recipientWallet)) {
-			setErrorMessage("Enter a valid recipient wallet address.");
+		if (!isStellarAddress(draft.recipientWallet)) {
+			setErrorMessage("Enter a valid Stellar recipient address.");
 			return;
 		}
 
@@ -179,114 +94,81 @@ export function useCreateEscrow({
 			return;
 		}
 
+		if (networkPassphrase !== networks.testnet.networkPassphrase) {
+			setErrorMessage("Switch Freighter to Stellar TESTNET before creating the escrow.");
+			return;
+		}
+
 		try {
-			const totalAmount = parseAmountValue(draft.totalAmount);
-			const milestonePayload = draft.milestones.map((milestone) => {
-				const dueDate = parseDueDate(milestone.deadline);
-				if (dueDate === null) {
-					throw new Error(`Invalid milestone due date: ${milestone.deadline}`);
-				}
-
-				const releaseRule = mapMilestoneTrigger(milestone.trigger);
-				return {
-					title: milestone.title.trim(),
-					description: milestone.description.trim(),
-					amount: parseAmountValue(milestone.amount),
-					dueDate,
-					releaseRule,
-					releaseCondition:
-						releaseRule === MILESTONE_RELEASE_RULE.CUSTOM
-							? milestone.trigger.trim()
-							: "",
-				};
-			});
-			const milestoneTotal = milestonePayload.reduce(
-				(sum, milestone) => sum + milestone.amount,
-				0n,
-			);
-
-			if (totalAmount <= 0n) {
-				setErrorMessage(
-					deployment.chainId === 421614
-						? `Enter a small ${fundingTokenSymbol} test amount to continue.`
-						: `Enter a ${fundingTokenSymbol} amount to continue.`,
-				);
-				return;
-			}
-
-			if (milestoneTotal !== totalAmount) {
-				setErrorMessage("Milestone amounts must add up to the contract total.");
-				return;
-			}
-
-			const allowanceValue = (allowance as bigint | undefined) ?? 0n;
-			const shouldFundImmediately = mode === "createAndFund";
-
-			if (shouldFundImmediately && allowanceValue < totalAmount) {
-				setIsApproving(true);
-				setStatusMessage(`Approving ${fundingTokenSymbol} spending...`);
-
-				const approvalHash = await writeContractAsync({
-					...getFundingTokenConfig("approve", [
-						getEscrowConfig("createEscrow").address,
-						totalAmount,
-					]),
-				});
-
-				setIsApproving(false);
-				setIsProcessing(true);
-				await waitForTransactionReceipt(config, { hash: approvalHash });
-				await refetchAllowance();
-				setIsProcessing(false);
-			}
-
-			setIsCreating(true);
-			setStatusMessage(
-				shouldFundImmediately
-					? "Creating and funding escrow onchain..."
-					: "Creating escrow draft onchain...",
-			);
-
-			const hash = await writeContractAsync({
-				...getEscrowConfig(
-					shouldFundImmediately ? "createAndFundEscrow" : "createEscrow",
-					[
-					{
-						title: draft.title.trim(),
-						description: draft.description.trim(),
-						clientName: draft.clientName.trim(),
-						recipientName: draft.recipientName.trim(),
-						recipient: draft.recipientWallet,
-						token: fundingTokenAddress,
-						totalAmount,
-						fundingDeadline: convertFundingWindowToDeadline(draft.fundingWindow),
-						defaultReleaseRule: mapReleaseType(draft.releaseType),
-						refundPolicy: mapRefundPolicy(draft.refundPolicy),
-						resolverType: mapResolverType(draft.selectedMediator),
-					},
-					milestonePayload,
-				],
-				),
-			});
-
-			setIsCreating(false);
-			setIsProcessing(true);
-			await waitForTransactionReceipt(config, { hash });
-			setIsProcessing(false);
-			setStatusMessage(
-				shouldFundImmediately
-					? "Escrow created and funded successfully."
-					: "Escrow draft created successfully.",
-			);
-			onSuccess?.(hash);
-		} catch (error) {
 			setIsApproving(false);
+			setIsCreating(true);
+			setIsProcessing(true);
+			setStatusMessage("Preparing the Soroban escrow transaction in Freighter...");
+
+			const milestoneTitles = draft.milestones.map((milestone, index) => {
+				const title = milestone.title.trim();
+				return title || `Milestone ${index + 1}`;
+			});
+			const milestoneAmounts = draft.milestones.map((milestone) =>
+				parseXlmAmountToStroops(milestone.amount),
+			);
+
+			const client = new Client({
+				contractId: networks.testnet.contractId,
+				networkPassphrase: networks.testnet.networkPassphrase,
+				address,
+				publicKey: address,
+				rpcUrl: TESTNET_RPC_URL,
+				signTransaction: freighterSignTransaction,
+			} as ConstructorParameters<typeof Client>[0] & { address: string });
+
+			const transaction = await client.create_escrow(
+				{
+					client: address,
+					recipient: draft.recipientWallet,
+					resolver: undefined,
+					title: draft.title.trim(),
+					milestone_titles: milestoneTitles,
+					milestone_amounts: milestoneAmounts,
+				},
+				{
+					address,
+					publicKey: address,
+					signTransaction: freighterSignTransaction,
+				} as Parameters<typeof client.create_escrow>[1] & { address: string },
+			);
+
+			setStatusMessage("Approve the Soroban escrow transaction in Freighter.");
+
+			const sentTransaction = await transaction.signAndSend({
+				signTransaction: freighterSignTransaction,
+				force: true,
+			});
+			const escrowId = sentTransaction.result;
+			storeEscrowId(address, escrowId);
+
+			setStatusMessage(
+				`Soroban escrow #${escrowId.toString()} was created on Stellar testnet.`,
+			);
+			onSuccess?.(sentTransaction.sendTransactionResponse?.hash ?? escrowId.toString());
+		} catch (error) {
+			const userMessage = getUserFacingTransactionErrorMessage(error, "XLM");
+			const detailedMessage =
+				error instanceof Error
+					? error.message
+					: typeof error === "object" && error !== null && "message" in error
+						? String(error.message)
+						: "";
+			setErrorMessage(
+				userMessage === "The transaction could not be completed. Please try again." &&
+					detailedMessage
+					? detailedMessage
+					: userMessage,
+			);
+			console.error("Create escrow failed", error);
+		} finally {
 			setIsCreating(false);
 			setIsProcessing(false);
-			setStatusMessage("");
-			setErrorMessage(
-				getUserFacingTransactionErrorMessage(error, fundingTokenSymbol),
-			);
 		}
 	};
 
@@ -297,7 +179,7 @@ export function useCreateEscrow({
 		isProcessing,
 		statusMessage,
 		errorMessage,
-		fundingTokenConfigured,
-		fundingTokenSymbol,
+		fundingTokenConfigured: true,
+		fundingTokenSymbol: "XLM",
 	};
 }

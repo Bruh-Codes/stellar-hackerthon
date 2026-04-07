@@ -10,9 +10,9 @@ const manrope = Manrope({
 });
 
 export const metadata: Metadata = {
-	title: "TrustBlock | Programmable Escrow on Arbitrum",
+	title: "TrustBlock | Stellar White Belt",
 	description:
-		"Milestone escrow interface for secure contract payments on Arbitrum.",
+		"Stellar-native wallet and transaction workbench for the TrustBlock hackathon build.",
 };
 
 export default function RootLayout({
