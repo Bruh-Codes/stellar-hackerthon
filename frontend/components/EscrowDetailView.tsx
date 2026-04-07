@@ -18,7 +18,6 @@ import {
 } from "lucide-react";
 import { formatUnits, parseUnits } from "viem";
 import { ViewState } from "@/app/page";
-import { contractAddresses, deployment } from "@/helpers/deployments";
 import { useEscrowAction } from "@/hooks/useEscrowAction";
 import { useEscrows } from "@/hooks/useEscrows";
 import { useFundEscrow } from "@/hooks/useFundEscrow";
@@ -63,6 +62,9 @@ type DecoratedMilestone = TimelineMilestone & {
 };
 type WorkroomState = ReturnType<typeof createInitialWorkroomState>;
 
+const CONTRACT_ID = "CAQGDVXYW6YHIMLXTNCINAPCZXZ37JKLACGEWXQULYJNAGB5JJBHV4NC";
+const STELLAR_EXPLORER_BASE_URL = "https://stellar.expert/explorer/testnet";
+
 export function EscrowDetailView({
 	escrowId,
 	onNavigate,
@@ -104,15 +106,8 @@ export function EscrowDetailView({
 	const participantRole: ParticipantRole = selectedDeal
 		? getParticipantRole(selectedDeal, address)
 		: "viewer";
-	const explorerBaseUrl =
-		deployment.chainId === 421614
-			? "https://sepolia.arbiscan.io"
-			: "https://arbiscan.io";
-	const contractExplorerHref = contractAddresses.escrow
-		? `${explorerBaseUrl}/address/${contractAddresses.escrow}`
-		: null;
-	const networkLabel =
-		deployment.chainId === 421614 ? "Arbitrum Sepolia" : "Arbitrum";
+	const contractExplorerHref = `${STELLAR_EXPLORER_BASE_URL}/contract/${CONTRACT_ID}`;
+	const networkLabel = "Stellar TESTNET";
 	const {
 		fundEscrow,
 		isApproving,

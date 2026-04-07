@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { signTransaction as freighterSignTransaction } from "@stellar/freighter-api";
 import { useWallet } from "@/components/WalletProvider";
 import { Client, networks } from "@/lib/soroban/trustblock-escrow-client/src";
+import { storeActivityItem } from "@/lib/stellar-activity-store";
 import { storeEscrowId } from "@/lib/stellar-escrow-store";
+import { storeRecentTransaction } from "@/lib/stellar-transaction-store";
 import { getUserFacingTransactionErrorMessage } from "@/lib/transaction-errors";
 
 type CreateMilestoneInput = {
@@ -60,7 +61,7 @@ export function useCreateEscrow({
 }: {
 	onSuccess?: (hash: string) => void;
 } = {}) {
-	const { address, networkPassphrase } = useWallet();
+	const { address, networkPassphrase, signTransaction } = useWallet();
 	const [statusMessage, setStatusMessage] = useState("");
 	const [errorMessage, setErrorMessage] = useState("");
 	const [isApproving, setIsApproving] = useState(false);
@@ -75,7 +76,7 @@ export function useCreateEscrow({
 		setStatusMessage("");
 
 		if (!address) {
-			setErrorMessage("Connect Freighter before creating an escrow.");
+			setErrorMessage("Connect a Stellar wallet before creating an escrow.");
 			return;
 		}
 
@@ -95,7 +96,7 @@ export function useCreateEscrow({
 		}
 
 		if (networkPassphrase !== networks.testnet.networkPassphrase) {
-			setErrorMessage("Switch Freighter to Stellar TESTNET before creating the escrow.");
+			setErrorMessage("Switch the connected wallet to Stellar TESTNET before creating the escrow.");
 			return;
 		}
 
@@ -103,7 +104,12 @@ export function useCreateEscrow({
 			setIsApproving(false);
 			setIsCreating(true);
 			setIsProcessing(true);
-			setStatusMessage("Preparing the Soroban escrow transaction in Freighter...");
+			setStatusMessage("Preparing the Soroban escrow transaction in your Stellar wallet...");
+			storeRecentTransaction({
+				label: "Soroban escrow creation",
+				status: "pending",
+				updatedAt: new Date().toISOString(),
+			});
 
 			const milestoneTitles = draft.milestones.map((milestone, index) => {
 				const title = milestone.title.trim();
@@ -119,7 +125,7 @@ export function useCreateEscrow({
 				address,
 				publicKey: address,
 				rpcUrl: TESTNET_RPC_URL,
-				signTransaction: freighterSignTransaction,
+				signTransaction,
 			} as ConstructorParameters<typeof Client>[0] & { address: string });
 
 			const transaction = await client.create_escrow(
@@ -134,23 +140,51 @@ export function useCreateEscrow({
 				{
 					address,
 					publicKey: address,
-					signTransaction: freighterSignTransaction,
+					signTransaction,
 				} as Parameters<typeof client.create_escrow>[1] & { address: string },
 			);
 
-			setStatusMessage("Approve the Soroban escrow transaction in Freighter.");
+			setStatusMessage("Approve the Soroban escrow transaction in your Stellar wallet.");
 
+			let submittedHash: string | undefined;
 			const sentTransaction = await transaction.signAndSend({
-				signTransaction: freighterSignTransaction,
+				signTransaction,
 				force: true,
+				watcher: {
+					onSubmitted(response) {
+						submittedHash = response?.hash;
+					},
+				},
 			});
 			const escrowId = sentTransaction.result;
+			const transactionHash =
+				submittedHash ??
+				sentTransaction.sendTransactionResponse?.hash ??
+				sentTransaction.getTransactionResponse?.txHash ??
+				(transaction.built
+					? Buffer.from(transaction.built.hash()).toString("hex")
+					: undefined);
 			storeEscrowId(address, escrowId);
+			storeRecentTransaction({
+				details: `Escrow #${escrowId.toString()} was created on Stellar testnet.`,
+				hash: transactionHash,
+				label: "Soroban escrow creation",
+				status: "success",
+				updatedAt: new Date().toISOString(),
+			});
+			storeActivityItem({
+				description: `Escrow #${escrowId.toString()} for ${draft.title.trim()} is now live on Stellar testnet.`,
+				hash: transactionHash,
+				id: `create-${escrowId.toString()}-${transactionHash ?? "nohash"}`,
+				status: "success",
+				timestamp: new Date().toISOString(),
+				title: "Escrow created",
+			});
 
 			setStatusMessage(
 				`Soroban escrow #${escrowId.toString()} was created on Stellar testnet.`,
 			);
-			onSuccess?.(sentTransaction.sendTransactionResponse?.hash ?? escrowId.toString());
+			onSuccess?.(transactionHash ?? escrowId.toString());
 		} catch (error) {
 			const userMessage = getUserFacingTransactionErrorMessage(error, "XLM");
 			const detailedMessage =
@@ -165,6 +199,27 @@ export function useCreateEscrow({
 					? detailedMessage
 					: userMessage,
 			);
+			storeRecentTransaction({
+				errorMessage:
+					userMessage === "The transaction could not be completed. Please try again." &&
+					detailedMessage
+						? detailedMessage
+						: userMessage,
+				label: "Soroban escrow creation",
+				status: "fail",
+				updatedAt: new Date().toISOString(),
+			});
+			storeActivityItem({
+				description:
+					userMessage === "The transaction could not be completed. Please try again." &&
+					detailedMessage
+						? detailedMessage
+						: userMessage,
+				id: `create-error-${Date.now()}`,
+				status: "fail",
+				timestamp: new Date().toISOString(),
+				title: "Escrow creation failed",
+			});
 			console.error("Create escrow failed", error);
 		} finally {
 			setIsCreating(false);

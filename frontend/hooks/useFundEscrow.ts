@@ -23,7 +23,7 @@ export function useFundEscrow({
 		setStatusMessage("");
 
 		if (!address) {
-			setErrorMessage("Connect Freighter before funding the escrow.");
+			setErrorMessage("Connect a Stellar wallet before funding the escrow.");
 			return;
 		}
 

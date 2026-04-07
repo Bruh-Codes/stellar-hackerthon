@@ -1,11 +1,19 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { ExternalLink } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ViewState } from "@/app/page";
-import { contractAddresses, deployment } from "@/helpers/deployments";
 import { useEscrows } from "@/hooks/useEscrows";
 import { getParticipantRole } from "@/lib/escrow";
+import {
+	loadRecentTransaction,
+	subscribeToRecentTransaction,
+	type RecentTransactionState,
+} from "@/lib/stellar-transaction-store";
+
+const CONTRACT_ID = "CAQGDVXYW6YHIMLXTNCINAPCZXZ37JKLACGEWXQULYJNAGB5JJBHV4NC";
+const STELLAR_EXPLORER_BASE_URL = "https://stellar.expert/explorer/testnet";
 
 export function Transactions({
 	onNavigate,
@@ -21,18 +29,18 @@ export function Transactions({
 		isOnDeploymentChain,
 		address,
 	} = useEscrows();
+	const [recentTransaction, setRecentTransaction] =
+		useState<RecentTransactionState | null>(null);
 	const router = useRouter();
 	const pathname = usePathname();
 	const searchParams = useSearchParams();
-	const explorerBaseUrl =
-		deployment.chainId === 421614
-			? "https://sepolia.arbiscan.io"
-			: "https://arbiscan.io";
-	const contractExplorerHref = contractAddresses.escrow
-		? `${explorerBaseUrl}/address/${contractAddresses.escrow}`
-		: null;
-	const networkLabel =
-		deployment.chainId === 421614 ? "Arbitrum Sepolia" : "Arbitrum";
+	const contractExplorerHref = `${STELLAR_EXPLORER_BASE_URL}/contract/${CONTRACT_ID}`;
+	const networkLabel = "Stellar TESTNET";
+
+	useEffect(() => {
+		setRecentTransaction(loadRecentTransaction());
+		return subscribeToRecentTransaction(setRecentTransaction);
+	}, []);
 
 	const openEscrowDetail = (escrowId: string) => {
 		const nextParams = new URLSearchParams(searchParams.toString());
@@ -45,7 +53,7 @@ export function Transactions({
 		<div className="mx-auto flex max-w-6xl flex-col gap-6">
 			{isConnected && !isOnDeploymentChain ? (
 				<div className="rounded-2xl border border-[rgba(255,209,102,0.22)] bg-[linear-gradient(180deg,rgba(255,209,102,0.12),rgba(255,209,102,0.04)),rgba(24,19,11,0.88)] px-4 py-3 text-sm text-[#fff0c9]">
-					Switch the wallet to {networkLabel} to manage these escrows. The ledger is pinned to the deployed contracts on that network.
+					Switch the wallet to {networkLabel} to manage these escrows. The ledger is pinned to the deployed Soroban contract on that network.
 				</div>
 			) : null}
 
@@ -83,6 +91,48 @@ export function Transactions({
 						) : null}
 					</div>
 				</div>
+
+				{recentTransaction ? (
+					<div className="mt-5 rounded-2xl border border-border/70 bg-background/30 px-4 py-4">
+						<div className="flex flex-wrap items-start justify-between gap-3">
+							<div>
+								<p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+									Last contract transaction
+								</p>
+								<h3 className="mt-2 text-sm font-semibold text-foreground">
+									{recentTransaction.label}
+								</h3>
+							</div>
+							<span
+								className={`status-pill ${
+									recentTransaction.status === "success"
+										? "status-emerald"
+										: recentTransaction.status === "pending"
+											? "status-amber"
+											: "status-rose"
+								}`}
+							>
+								{recentTransaction.status}
+							</span>
+						</div>
+						<p className="mt-3 text-sm text-muted-foreground">
+							{recentTransaction.details ??
+								recentTransaction.errorMessage ??
+								"Waiting for a Stellar contract update."}
+						</p>
+						{recentTransaction.hash ? (
+							<a
+								href={`${STELLAR_EXPLORER_BASE_URL}/tx/${recentTransaction.hash}`}
+								target="_blank"
+								rel="noreferrer"
+								className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-primary"
+							>
+								View transaction hash
+								<ExternalLink className="h-4 w-4" />
+							</a>
+						) : null}
+					</div>
+				) : null}
 
 				<div className="mt-5 grid gap-3.5 lg:grid-cols-2">
 					{hasEscrows ? (

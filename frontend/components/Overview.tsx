@@ -1,6 +1,6 @@
 import { ArrowRight, Landmark, ShieldCheck, Workflow } from "lucide-react";
 import { ViewState } from "@/app/page";
-import { deployment } from "@/helpers/deployments";
+import { ActivityFeed } from "@/components/ActivityFeed";
 import { useEscrows } from "@/hooks/useEscrows";
 
 const iconMap = {
@@ -26,8 +26,7 @@ export function Overview({
 		isOnDeploymentChain,
 	} = useEscrows();
 	const nextAction = escrows.find((escrow) => escrow.status !== "Completed") ?? escrows[0];
-	const networkLabel =
-		deployment.chainId === 421614 ? "Arbitrum Sepolia" : "Arbitrum";
+	const networkLabel = "Stellar TESTNET";
 
 	return (
 		<div className="mx-auto flex max-w-6xl flex-col gap-5">
@@ -76,7 +75,7 @@ export function Overview({
 			<section className="panel-surface p-5">
 				{isConnected && !isOnDeploymentChain ? (
 					<div className="mb-5 rounded-2xl border border-[rgba(255,209,102,0.22)] bg-[linear-gradient(180deg,rgba(255,209,102,0.12),rgba(255,209,102,0.04)),rgba(24,19,11,0.88)] px-4 py-3 text-sm text-[#fff0c9]">
-						Switch the wallet to {networkLabel} to act on these escrows. Live data is pinned to the deployed TrustBlock contracts there.
+						Switch the wallet to {networkLabel} to act on these escrows. Live data is synchronized from the deployed TrustBlock Soroban contract there.
 					</div>
 				) : null}
 				<div className="flex flex-wrap items-center justify-between gap-3">
@@ -136,44 +135,48 @@ export function Overview({
 						</div>
 					</div>
 
-					<div className="rounded-xl border border-border/70 bg-background/25 p-4.5">
-						<p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-							Next action
-						</p>
-						<h3 className="mt-3 text-lg font-semibold text-foreground">
-							{nextAction?.nextActionTitle ?? "Create your first escrow"}
-						</h3>
-						<p className="mt-3 text-sm leading-7 text-muted-foreground">
-							{nextAction?.nextActionDescription ??
-								"Draft and fund a milestone escrow to start tracking releases onchain."}
-						</p>
+					<div className="space-y-3.5">
+						<div className="rounded-xl border border-border/70 bg-background/25 p-4.5">
+							<p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+								Next action
+							</p>
+							<h3 className="mt-3 text-lg font-semibold text-foreground">
+								{nextAction?.nextActionTitle ?? "Create your first escrow"}
+							</h3>
+							<p className="mt-3 text-sm leading-7 text-muted-foreground">
+								{nextAction?.nextActionDescription ??
+									"Draft and fund a milestone escrow to start tracking releases onchain."}
+							</p>
 
-						<div className="mt-5 space-y-3">
-							<div className="rounded-xl border border-border/70 bg-background/40 p-3.5">
-								<p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-									Pending release
-								</p>
-								<p className="mt-2 text-base font-semibold text-foreground">
-									{nextAction?.pending ?? "0 USDC"}
-								</p>
+							<div className="mt-5 space-y-3">
+								<div className="rounded-xl border border-border/70 bg-background/40 p-3.5">
+									<p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+										Pending release
+									</p>
+									<p className="mt-2 text-base font-semibold text-foreground">
+										{nextAction?.pending ?? "0 XLM"}
+									</p>
+								</div>
+								<div className="rounded-xl border border-border/70 bg-background/40 p-3.5">
+									<p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+										Review window
+									</p>
+									<p className="mt-2 text-base font-semibold text-foreground">
+										{nextAction?.reviewWindowLabel ?? "Not started"}
+									</p>
+								</div>
 							</div>
-							<div className="rounded-xl border border-border/70 bg-background/40 p-3.5">
-								<p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-									Review window
-								</p>
-								<p className="mt-2 text-base font-semibold text-foreground">
-									{nextAction?.reviewWindowLabel ?? "Not started"}
-								</p>
-							</div>
+
+							<button
+								onClick={() => onNavigate("transactions")}
+								className="ui-button-primary mt-5 w-full px-4 py-2.5 text-sm font-semibold"
+							>
+								Open Ledger
+								<ArrowRight className="size-4" />
+							</button>
 						</div>
 
-						<button
-							onClick={() => onNavigate("transactions")}
-							className="ui-button-primary mt-5 w-full px-4 py-2.5 text-sm font-semibold"
-						>
-							Open Ledger
-							<ArrowRight className="size-4" />
-						</button>
+						<ActivityFeed />
 					</div>
 				</div>
 			</section>

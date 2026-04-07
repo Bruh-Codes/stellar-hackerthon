@@ -1,11 +1,12 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useWallet } from "@/components/WalletProvider";
 import { Client, networks, type Escrow, type Milestone } from "@/lib/soroban/trustblock-escrow-client/src";
 import { ESCROW_STATUS, MILESTONE_STATUS, type DashboardStat, type EscrowCard, type TimelineMilestone } from "@/lib/escrow";
 import { formatAddressLabel } from "@/lib/escrow";
+import { storeActivityItem } from "@/lib/stellar-activity-store";
 import { loadStoredEscrowIds } from "@/lib/stellar-escrow-store";
 
 const TESTNET_RPC_URL = "https://soroban-testnet.stellar.org";
@@ -227,10 +228,12 @@ function buildFeaturedStats(escrows: EscrowCard[]): DashboardStat[] {
 export function useEscrows() {
 	const { address, status, networkPassphrase } = useWallet();
 	const isConnected = Boolean(address) && status === "connected";
+	const previousEscrowsRef = useRef<Map<string, EscrowCard>>(new Map());
 
 	const escrowsQuery = useQuery({
 		queryKey: ["stellar-escrows", address],
 		enabled: isConnected,
+		refetchInterval: isConnected ? 4_000 : false,
 		queryFn: async () => {
 			if (!address) {
 				return [] as EscrowCard[];
@@ -274,6 +277,57 @@ export function useEscrows() {
 		() => (isConnected ? buildFeaturedStats(escrows) : []),
 		[escrows, isConnected],
 	);
+
+	useEffect(() => {
+		if (!isConnected) {
+			previousEscrowsRef.current = new Map();
+			return;
+		}
+
+		const previousEscrows = previousEscrowsRef.current;
+		for (const escrow of escrows) {
+			const previous = previousEscrows.get(escrow.id);
+			if (!previous) {
+				storeActivityItem({
+					description: `${escrow.title} is being tracked in the ledger for this wallet.`,
+					id: `tracked-${escrow.id}`,
+					status: "info",
+					timestamp: new Date().toISOString(),
+					title: "Escrow synced",
+				});
+				continue;
+			}
+
+			if (previous.status !== escrow.status) {
+				storeActivityItem({
+					description: `${escrow.title} moved from ${previous.status} to ${escrow.status}.`,
+					id: `status-${escrow.id}-${escrow.status}`,
+					status:
+						escrow.status === "Completed"
+							? "success"
+							: escrow.status === "Refunded"
+								? "fail"
+								: "pending",
+					timestamp: new Date().toISOString(),
+					title: "Escrow status changed",
+				});
+			}
+
+			if (previous.completedMilestones !== escrow.completedMilestones) {
+				storeActivityItem({
+					description: `${escrow.title} now has ${escrow.completedMilestones}/${escrow.totalMilestones} milestones released.`,
+					id: `milestone-${escrow.id}-${escrow.completedMilestones}`,
+					status: "success",
+					timestamp: new Date().toISOString(),
+					title: "Milestone progress updated",
+				});
+			}
+		}
+
+		previousEscrowsRef.current = new Map(
+			escrows.map((escrow) => [escrow.id, escrow] as const),
+		);
+	}, [escrows, isConnected]);
 
 	return {
 		address: address as `0x${string}` | undefined,

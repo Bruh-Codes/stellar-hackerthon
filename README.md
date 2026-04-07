@@ -1,64 +1,46 @@
 # TrustBlock on Stellar
 
-TrustBlock is a Stellar-native milestone escrow app for service payments. This hackathon workspace is the Stellar Journey to Mastery version of the product, focused on Soroban-based escrow creation and a Freighter-connected frontend.
+TrustBlock is a Stellar-native milestone escrow app for service payments. This hackathon workspace is the Stellar Journey to Mastery version of the product, adapted to Soroban with multi-wallet Stellar support and live contract activity surfaced in the frontend.
 
-## White Belt Status
+## Current Scope
 
-This repo is ready for a Level 1 White Belt submission.
-
-Current working scope:
-
-- Freighter wallet connection in the existing TrustBlock UI
+- Multi-wallet Stellar connection through `StellarWalletsKit`
 - Stellar testnet detection in the frontend
 - Live Soroban escrow contract deployed on Stellar testnet
 - Real `create_escrow` contract invocation from the app
-- Created escrows shown back in the in-app Ledger view
-
-What this milestone proves:
-
-- users can connect a Stellar wallet
-- users can sign a real Stellar/Soroban transaction
-- the app creates a live onchain escrow on Stellar testnet
+- Visible contract transaction state in the UI
+- Ledger sync plus a lightweight live activity feed for onchain changes
 
 ## Submission Checklist
 
-This submission includes:
+This project is prepared for the Level 2 Yellow Belt checklist:
 
 - Public GitHub repository
-- `README.md`
+- README with setup instructions
+- Minimum 2+ meaningful commits
 
-This README includes:
+Required in this README:
 
-- Project description
-- Setup instructions for local run
-- Screenshot checklist for submission assets
-
-Required screenshots for the final submission package:
-
-- Wallet connected state
-- Balance displayed
-- Successful testnet transaction
-- The transaction result shown to the user
-
-One combined screenshot is acceptable if it clearly shows multiple required states in one frame.
-
-Suggested screenshot filenames:
-
-- `screenshots/wallet-connected.png`
-- `screenshots/balance-displayed.png`
-- `screenshots/successful-testnet-transaction.png`
-- `screenshots/transaction-result-shown.png`
-- `screenshots/white-belt-combined-proof.png`
+- Live demo link: optional
+- Screenshot: wallet options available
+- Deployed contract address
+- Transaction hash of a contract call that can be verified on Stellar Explorer
 
 ## Project Structure
 
-- `frontend/`: TrustBlock frontend adapted for Freighter + Soroban
+- `frontend/`: TrustBlock frontend adapted for Stellar wallets + Soroban
 - `contracts/`: Soroban contract workspace for the Stellar escrow logic
 
-## Deployed Testnet Contract
+## Deployed Contract
 
-- Contract ID: `CAQGDVXYW6YHIMLXTNCINAPCZXZ37JKLACGEWXQULYJNAGB5JJBHV4NC`
 - Network: `Stellar Testnet`
+- Contract ID: `CAQGDVXYW6YHIMLXTNCINAPCZXZ37JKLACGEWXQULYJNAGB5JJBHV4NC`
+- Contract Explorer: [stellar.expert testnet contract page](https://stellar.expert/explorer/testnet/contract/CAQGDVXYW6YHIMLXTNCINAPCZXZ37JKLACGEWXQULYJNAGB5JJBHV4NC)
+
+## Contract Call Proof
+
+- Latest contract call transaction hash: `0375428654af24921b77d9d97f2087f308190fa6d31447b4e9b471e8d270fb24`
+- Explorer link: [stellar.expert verified transaction](https://stellar.expert/explorer/testnet/tx/0375428654af24921b77d9d97f2087f308190fa6d31447b4e9b471e8d270fb24)
 
 ## Local Run
 
@@ -73,43 +55,38 @@ Then open `http://localhost:3000`.
 
 ## Demo Flow
 
-1. Connect Freighter
-2. Make sure Freighter is on Stellar testnet
-3. Open `New Escrow`
-4. Enter a valid Stellar recipient address
-5. Add milestone amounts in XLM
-6. Click `Create escrow`
-7. Approve the Soroban transaction in Freighter
-8. View the created escrow in `Ledger`
+1. Open the app and connect a Stellar wallet from the wallet options modal.
+2. Keep the selected wallet on Stellar testnet.
+3. Open `New Escrow`.
+4. Enter a valid Stellar recipient address.
+5. Add milestone amounts in XLM.
+6. Click `Create escrow`.
+7. Approve the Soroban transaction in the connected wallet.
+8. Confirm the transaction status in `Ledger`.
+9. Confirm the escrow and activity update in `Overview` and `Ledger`.
 
 ## Screenshots
 
-Capture and include these in the repository before final submission:
+Required screenshots for the submission package:
 
-1. Wallet connected state
-2. Balance displayed
-3. Successful testnet transaction
-4. Transaction result shown to the user in the app
+- Wallet options available
+- Wallet connected state
+- Successful testnet contract transaction
+- Transaction result shown to the user in the app
 
-If you prefer a single combined proof image, use:
+Current screenshot asset in this repo:
 
 - `frontend/screenshots/white-belt-combined-proof.png`
 
-Suggested caption:
+Additional suggested screenshot filename for Yellow Belt:
 
-- Connected Freighter wallet, in-app escrow value display, and successful Stellar testnet escrow creation visible in the TrustBlock ledger.
+- `frontend/screenshots/wallet-options-available.png`
 
 Submission proof image:
 
-![White Belt combined proof](./frontend/screenshots/white-belt-combined-proof.png)
+![TrustBlock Stellar proof](./frontend/screenshots/white-belt-combined-proof.png)
 
-## Next Belt Steps
+## Notes
 
-- fund escrow onchain from the app
-- submit milestone actions onchain
-- approve and release milestones onchain
-- add tests and broader production-readiness polish
-
-## Git
-
-This folder has its own Git repository and can be pushed to a separate hackathon remote.
+- This repository is a separate Git repository from the original Arbitrum project.
+- The frontend UI was intentionally preserved while the wallet and contract layers were migrated to Stellar.

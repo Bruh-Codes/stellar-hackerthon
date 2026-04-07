@@ -21,7 +21,9 @@ export function getUserFacingTransactionErrorMessage(
 		message.includes("user rejected") ||
 		message.includes("user denied") ||
 		message.includes("request rejected") ||
-		message.includes("rejected the request")
+		message.includes("rejected the request") ||
+		message.includes("cancelled") ||
+		message.includes("canceled")
 	) {
 		return "The wallet request was cancelled.";
 	}
@@ -35,7 +37,8 @@ export function getUserFacingTransactionErrorMessage(
 
 	if (
 		message.includes("insufficient funds") ||
-		message.includes("exceeds the balance")
+		message.includes("exceeds the balance") ||
+		message.includes("underfunded")
 	) {
 		return "The connected wallet does not have enough funds to complete this transaction.";
 	}
@@ -54,7 +57,12 @@ export function getUserFacingTransactionErrorMessage(
 		return "One of the wallet addresses is invalid. Check the recipient address and try again.";
 	}
 
-	if (message.includes("connector not connected")) {
+	if (
+		message.includes("connector not connected") ||
+		message.includes("wallet not found") ||
+		message.includes("not detected") ||
+		message.includes("not installed")
+	) {
 		return "Connect the wallet again and retry the transaction.";
 	}
 
