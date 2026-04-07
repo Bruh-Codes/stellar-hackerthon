@@ -76,11 +76,16 @@ Required screenshots for the submission package:
 
 Current screenshot asset in this repo:
 
+- `frontend/screenshots/wallet-options.png`
 - `frontend/screenshots/white-belt-combined-proof.png`
 
 Additional suggested screenshot filename for Yellow Belt:
 
-- `frontend/screenshots/wallet-options-available.png`
+- `frontend/screenshots/wallet-options.png`
+
+Wallet options screenshot:
+
+![TrustBlock wallet options](./frontend/screenshots/wallet-options.png)
 
 Submission proof image:
 
