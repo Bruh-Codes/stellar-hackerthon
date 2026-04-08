@@ -87,7 +87,7 @@ function getMilestoneStatusLabel(status: number): TimelineMilestone["status"] {
 		case MILESTONE_STATUS.IN_REVIEW:
 			return "In review";
 		default:
-			return "Awaiting delivery";
+			return "Ready for delivery";
 	}
 }
 
@@ -123,7 +123,7 @@ function mapMilestone(milestone: Milestone): TimelineMilestone {
 					? "Approved onchain"
 					: status === "In review"
 						? "Submitted for review"
-						: "Awaiting delivery",
+						: "Ready for delivery",
 		status,
 		statusTone: getMilestoneTone(status),
 		dueDate: 0n,

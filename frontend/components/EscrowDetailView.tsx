@@ -962,7 +962,11 @@ function MilestoneCard({
 
 			<div className="mt-3 flex flex-wrap gap-2">
 				<span className="milestone-deadline-chip px-3 py-1 text-xs">
-					Due {formatLongDate(milestone.dueDate)}
+					{milestone.dueDate > 0n
+						? `Due ${formatLongDate(milestone.dueDate)}`
+						: selectedDeal.rawStatus === ESCROW_STATUS.LIVE
+							? "Ready to start"
+							: "Awaiting funding"}
 				</span>
 				{milestone.reviewDeadline > 0n ? (
 					<span className="milestone-deadline-chip px-3 py-1 text-xs">
@@ -1683,7 +1687,7 @@ function LedgerStatusBadge({
 			? "ledger-status-disputed"
 			: status === "In review" || status === "Approved"
 				? "ledger-status-review"
-				: status === "Awaiting delivery"
+				: status === "Ready for delivery"
 					? "ledger-status-review"
 					: "ledger-status-completed";
 
@@ -1692,7 +1696,7 @@ function LedgerStatusBadge({
 			? ShieldAlert
 			: status === "Refunded"
 				? Undo2
-				: status === "Awaiting delivery"
+				: status === "Ready for delivery"
 					? Wallet
 					: status === "In review" || status === "Approved"
 						? Clock3

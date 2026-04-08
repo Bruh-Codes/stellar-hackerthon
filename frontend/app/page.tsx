@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useTransition } from "react";
+import { Suspense, useMemo, useTransition } from "react";
 import { Bell, Plus } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { CreateEscrow } from "@/components/CreateEscrow";
@@ -48,7 +48,7 @@ const titles: Record<ViewState, { title: string; subtitle: string }> = {
 	},
 };
 
-export default function Page() {
+function PageContent() {
 	const router = useRouter();
 	const pathname = usePathname();
 	const searchParams = useSearchParams();
@@ -155,5 +155,13 @@ export default function Page() {
 				</div>
 			</div>
 		</SidebarProvider>
+	);
+}
+
+export default function Page() {
+	return (
+		<Suspense fallback={null}>
+			<PageContent />
+		</Suspense>
 	);
 }

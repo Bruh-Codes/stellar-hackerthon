@@ -113,7 +113,7 @@ export type TimelineMilestone = {
 	amountValue: bigint;
 	timestamp: string;
 	status:
-		| "Awaiting delivery"
+		| "Ready for delivery"
 		| "In review"
 		| "Approved"
 		| "Released"
@@ -262,7 +262,7 @@ export function getResolverLabel(resolverType: number) {
 export function getMilestoneStatusLabel(status: number): TimelineMilestone["status"] {
 	switch (status) {
 		case MILESTONE_STATUS.PENDING:
-			return "Awaiting delivery";
+			return "Ready for delivery";
 		case MILESTONE_STATUS.IN_REVIEW:
 			return "In review";
 		case MILESTONE_STATUS.APPROVED:
