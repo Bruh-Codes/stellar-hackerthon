@@ -111,6 +111,7 @@ Current screenshot assets in this repo:
 - `frontend/screenshots/wallet-options.png`
 - `frontend/screenshots/white-belt-combined-proof.png`
 - `frontend/screenshots/tests.png`
+- `frontend/screenshots/TrustBlock-Stellar-mobile-UI.png`
 
 Wallet options screenshot:
 
@@ -123,6 +124,10 @@ Submission proof image:
 Test output screenshot:
 
 ![TrustBlock passing tests](./frontend/screenshots/tests.png)
+
+Mobile responsive screenshot:
+
+![TrustBlock mobile responsive UI](./frontend/screenshots/TrustBlock-Stellar-mobile-UI.png)
 
 ## Functional Flow
 
