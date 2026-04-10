@@ -12,6 +12,7 @@ TrustBlock is a Stellar-native milestone escrow app for service payments. This h
 - Real `create_escrow` contract invocation from the app
 - Visible contract transaction state in the UI
 - Ledger sync plus a lightweight live activity feed for onchain changes
+- Automatic onchain refresh every 4 seconds with sync events surfaced in the activity feed
 
 ## Current Belt Status
 
@@ -23,6 +24,7 @@ This repo now covers the completed Level 3 mini-dApp milestone and the first Gre
 - Demo video linked
 - Live demo deployed
 - GitHub Actions CI added for test, typecheck, and build automation
+- Live state synchronization is surfaced in the UI with auto-refresh and activity feed updates
 
 ## Project Structure
 
@@ -53,6 +55,12 @@ This repo now covers the completed Level 3 mini-dApp milestone and the first Gre
   - Vitest test suite
   - TypeScript typecheck
   - Next.js production build
+
+## Live Sync
+
+- The frontend refreshes Soroban escrow state every 4 seconds for the connected wallet
+- Status changes and milestone progress updates are written into the in-app activity feed
+- Transaction results remain visible alongside the synced escrow state for quick verification
 
 ## Demo Video
 

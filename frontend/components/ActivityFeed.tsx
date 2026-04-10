@@ -43,6 +43,9 @@ export function ActivityFeed() {
 			<h3 className="mt-2 text-lg font-semibold text-foreground">
 				Recent Stellar events
 			</h3>
+			<p className="mt-2 text-sm leading-6 text-muted-foreground">
+				This feed combines contract transaction results with automatic onchain refresh events so escrow progress stays visible without a manual reload.
+			</p>
 
 			<div className="mt-4 space-y-3">
 				{items.length > 0 ? (

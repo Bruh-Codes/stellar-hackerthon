@@ -9,6 +9,28 @@ const iconMap = {
 	shield: ShieldCheck,
 } as const;
 
+function formatLastSyncLabel(lastSyncedAt: string | null) {
+	if (!lastSyncedAt) {
+		return "Waiting for first sync";
+	}
+
+	const deltaSeconds = Math.max(
+		0,
+		Math.floor((Date.now() - new Date(lastSyncedAt).getTime()) / 1000),
+	);
+
+	if (deltaSeconds < 5) {
+		return "Updated just now";
+	}
+
+	if (deltaSeconds < 60) {
+		return `Updated ${deltaSeconds}s ago`;
+	}
+
+	const deltaMinutes = Math.floor(deltaSeconds / 60);
+	return `Updated ${deltaMinutes}m ago`;
+}
+
 export function Overview({
 	onNavigate,
 	onOpenEscrow,
@@ -24,9 +46,12 @@ export function Overview({
 		isConnected,
 		contractsConfigured,
 		isOnDeploymentChain,
+		lastSyncedAt,
+		syncIntervalMs,
 	} = useEscrows();
 	const nextAction = escrows.find((escrow) => escrow.status !== "Completed") ?? escrows[0];
 	const networkLabel = "Stellar TESTNET";
+	const liveSyncLabel = formatLastSyncLabel(lastSyncedAt);
 
 	return (
 		<div className="mx-auto flex max-w-6xl flex-col gap-5">
@@ -86,8 +111,17 @@ export function Overview({
 						<h2 className="mt-2 text-lg font-semibold text-foreground">
 							Recent contracts
 						</h2>
+						<p className="mt-2 text-sm text-muted-foreground">
+							Onchain escrow state auto-refreshes every {Math.floor(syncIntervalMs / 1000)} seconds and logs contract changes into the live activity feed.
+						</p>
 					</div>
-					<ButtonLink label="New Escrow" onClick={() => onNavigate("create")} />
+					<div className="flex flex-wrap items-center gap-2">
+						<div className="rounded-full border border-border/70 bg-background/40 px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+							Live sync active
+							<span className="ml-2 text-foreground">{liveSyncLabel}</span>
+						</div>
+						<ButtonLink label="New Escrow" onClick={() => onNavigate("create")} />
+					</div>
 				</div>
 
 				<div className="mt-5 grid gap-3.5 xl:grid-cols-[1.2fr_0.8fr]">

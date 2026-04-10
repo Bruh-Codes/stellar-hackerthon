@@ -229,11 +229,12 @@ export function useEscrows() {
 	const { address, status, networkPassphrase } = useWallet();
 	const isConnected = Boolean(address) && status === "connected";
 	const previousEscrowsRef = useRef<Map<string, EscrowCard>>(new Map());
+	const syncIntervalMs = 4_000;
 
 	const escrowsQuery = useQuery({
 		queryKey: ["stellar-escrows", address],
 		enabled: isConnected,
-		refetchInterval: isConnected ? 4_000 : false,
+		refetchInterval: isConnected ? syncIntervalMs : false,
 		queryFn: async () => {
 			if (!address) {
 				return [] as EscrowCard[];
@@ -340,6 +341,11 @@ export function useEscrows() {
 		isConnected,
 		isLoading: escrowsQuery.isLoading,
 		isOnDeploymentChain: networkPassphrase === networks.testnet.networkPassphrase,
+		lastSyncedAt:
+			escrowsQuery.dataUpdatedAt > 0
+				? new Date(escrowsQuery.dataUpdatedAt).toISOString()
+				: null,
 		refetch: escrowsQuery.refetch,
+		syncIntervalMs,
 	};
 }
