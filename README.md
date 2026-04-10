@@ -1,5 +1,7 @@
 # TrustBlock on Stellar
 
+[![Frontend CI](https://github.com/Bruh-Codes/stellar-hackerthon/actions/workflows/frontend-ci.yml/badge.svg)](https://github.com/Bruh-Codes/stellar-hackerthon/actions/workflows/frontend-ci.yml)
+
 TrustBlock is a Stellar-native milestone escrow app for service payments. This hackathon workspace is the Stellar Journey to Mastery version of the product, adapted to Soroban with multi-wallet Stellar support, live contract activity in the frontend, and a tested mini-dApp flow.
 
 ## Current Scope
@@ -11,23 +13,16 @@ TrustBlock is a Stellar-native milestone escrow app for service payments. This h
 - Visible contract transaction state in the UI
 - Ledger sync plus a lightweight live activity feed for onchain changes
 
-## Level 3 Status
+## Current Belt Status
 
-This project is being prepared for the Level 3 Orange Belt checklist:
+This repo now covers the completed Level 3 mini-dApp milestone and the first Green Belt production-readiness upgrade:
 
 - Mini-dApp fully functional
 - 3+ tests passing
 - README complete
-- Demo video required
-- Minimum 3+ meaningful commits
-
-Required in this README:
-
-- Live demo link
-- Screenshot: test output showing 3+ tests passing
-- Demo video link showing full functionality
-- Deployed contract address
-- Transaction hash of a contract call that can be verified on Stellar Explorer
+- Demo video linked
+- Live demo deployed
+- GitHub Actions CI added for test, typecheck, and build automation
 
 ## Project Structure
 
@@ -48,6 +43,16 @@ Required in this README:
 ## Live Demo
 
 - Live demo link: [trustblock-soroban.vercel.app](https://trustblock-soroban.vercel.app/)
+
+## CI/CD
+
+- Workflow: `Frontend CI`
+- GitHub Actions page: [frontend-ci.yml workflow](https://github.com/Bruh-Codes/stellar-hackerthon/actions/workflows/frontend-ci.yml)
+- Current checks:
+  - dependency install with Yarn 4
+  - Vitest test suite
+  - TypeScript typecheck
+  - Next.js production build
 
 ## Demo Video
 
@@ -98,6 +103,8 @@ Required screenshots for the submission package:
 - Successful testnet contract transaction
 - Transaction result shown to the user in the app
 - Test output showing 3+ tests passing
+- Mobile responsive view
+- CI/CD pipeline running
 
 Current screenshot assets in this repo:
 
