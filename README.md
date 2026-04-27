@@ -152,3 +152,7 @@ Current mini-dApp flow:
 
 - This repository is a separate Git repository from the original Arbitrum project.
 - The frontend UI was intentionally preserved while the wallet and contract layers were migrated to Stellar.
+
+## Feedback
+I plan to iterate and improve the dApp based on the constructive feedbacks from the users. Each feedback will be taken into consideration if it a very valid feedback
+https://forms.gle/j3hk3qrAQqHJR7YC8
